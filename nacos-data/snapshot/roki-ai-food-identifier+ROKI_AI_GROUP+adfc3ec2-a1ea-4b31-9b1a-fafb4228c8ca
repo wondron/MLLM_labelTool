@@ -1,0 +1,14 @@
+MLLM_SERVER:
+    api_url: 'http://121.41.21.214:8064/v1'
+    api_key: 'sk-mGakQeRoSqWg6hXm_UUF8WVp-PyfIZ-MgtoNtE6dIJM'
+    model_name: 'qwen2vl-7b'
+    prompt: "列出图中出现的食物或食材"
+
+API_SERVER:
+    host: '0.0.0.0'
+    port: 8678
+
+SSH_CONFIG:
+    ip_num : '8.149.240.5'
+    username : 'root'
+    password : 'Uih@g3&&CPQPWQJy'

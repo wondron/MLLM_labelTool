@@ -1,0 +1,43 @@
+# 模型根目录
+EMBEDDING_MODEL_ROOT_PATH: "/model/embedding/"
+RERANKER_MODEL_ROOT_PATH: "/model/reranker/"
+ROUTER_PATH: "/model/roki-embeddings-router-A10-sm86"
+# 需要启动的Embedding模型列表
+EMBEDDING_MODEL_LIST:
+    bge-large-zh-v1.5:
+        dimension: 1024
+        sequence_length: 8196
+        port: 7500
+
+# 一次Embedding最多条数
+EMBEDDING_MAX_LENGTH: 1024
+
+# 需要启动的Reranker模型列表
+RERANKER_MODEL_LIST:
+    bge-reranker-v2-m3:
+        sequence_length: 8196
+        port: 7550
+
+# 一次Rerank最多条数
+RERANKER_MAX_LENGTH: 1024
+
+#一次分类模型最多条数
+BERT_CLS_MAX_LENGTH: 10000
+
+
+BERT_CLS_MODEL_LIST:
+    model_path: "/model/bert-base-chinese-bert-cls-lora"
+    tasks_info:
+        continuity:
+            rank: 8
+            alpha: 32
+            num_class: 2
+            batch_size: 64
+            max_length: 512
+            task_name: "continuity"
+            pair_input: True
+
+API_SERVER:
+    host: 0.0.0.0
+    port: 7861
+
