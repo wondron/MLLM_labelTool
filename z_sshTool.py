@@ -156,7 +156,7 @@ class SSHClient:
         except Exception as e:
             raise ConnectionError(f"创建文件夹失败，{e}")
  
-    def start_python_file(self, image_path, quote, save_path):
+    def start_python_file(self, image_path, quote, save_path, methodNum):
         """
         远程启动服务器的python文件。
         :param image_path: 要处理的图像路径。
@@ -166,20 +166,18 @@ class SSHClient:
         if not self.is_connected:
             raise ConnectionError("未连接远程服务器，无法启动Python文件！")
         try:
+            print("-------start python file------")
             command = (
                 f"source /root/miniconda3/etc/profile.d/conda.sh && "
                 f"conda activate foodCog && "
                 f"python /data/wangzhuo/01-code/99-qita/01-QWen/z_detect.py "
-                f"--image_path {image_path} --quote '{quote}' --save_path {save_path}"
+                f"--image_path {image_path} --quote '{quote}' --save_path {save_path} --process_index {methodNum}"
             )
             stdin, stdout, stderr = self.ssh_client_dtct.exec_command(command)
-            # output = stdout.read().decode()
-            # error = stderr.read().decode()
-            # 显示输出
-            # if output:
-            #     print(f'输出:\n{output}')
-            # if error:
-            #     print(f'错误:\n{error}')
+            print("-------Done eeeeeeeeeeee------")
+            print(stdin)
+            print(stdout)
+            print(stderr)
         except Exception as e:
             raise ConnectionError(f"启动Python文件失败，{e}")
 

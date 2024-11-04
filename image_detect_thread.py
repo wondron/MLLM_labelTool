@@ -10,13 +10,16 @@ class WorkThread(QThread):
         self.save_path = save_path
         self.image_folder = image_folder
     
-    def set_parameter(self, ssh_client, quote):
+    def set_parameter(self, ssh_client, quote, method):
         self.ssh_client = ssh_client
         self.quote = quote
+        self.method = method
 
     def run(self):
+        # while True:
         print("thread_work start")
-        self.ssh_client.start_python_file(self.image_folder, self.quote, self.save_path)
+            # time.sleep(1)
+        self.ssh_client.start_python_file(self.image_folder, self.quote, self.save_path, self.method)
         
         
 class CountThread(QThread):

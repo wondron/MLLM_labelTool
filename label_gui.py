@@ -1,5 +1,5 @@
 import sys, os
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QTextEdit,QLineEdit 
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QTextEdit,QLineEdit, QComboBox
 from PyQt5.QtWidgets import QHBoxLayout, QFileDialog, QSizePolicy, QSplitter, QTableWidget, QTableWidgetItem
 from PyQt5.QtGui import QPixmap, QImage, QTextCursor
 from PyQt5.QtCore import pyqtSignal, QThread, QUrl, QByteArray, Qt
@@ -118,7 +118,7 @@ class Window(QWidget):
         label_layout = QHBoxLayout()
         self.remote_path_label = QLabel("远程路径")
         label_layout.addWidget(self.remote_path_label)
-        self.remote_path_edit = QLineEdit("/data/wangzhuo/00-dataset/55-test/菠萝/")
+        self.remote_path_edit = QLineEdit("/data/wangzhuo/01-code/99-qita/01-QWen/image")
         label_layout.addWidget(self.remote_path_edit)
         self.btn_get_imagefiles = QPushButton("文件列表获取")
         self.btn_get_imagefiles.clicked.connect(self.on_getfiles_clicked)
@@ -183,23 +183,40 @@ class Window(QWidget):
         API_operator_layout.addWidget(self.btn_detect_total_api)
         right_layout.addLayout(API_operator_layout)
         
+        quote_label = QLabel("quote输入")
+        right_layout.addWidget(quote_label)
+        quote_label.setStyleSheet("border: none;")
         self.quote_edit = QTextEdit("图中存在哪些食材？没有食材就返回“无”，请简短回答无需输出无关字符。")
         self.quote_edit.setMaximumHeight(150)
         right_layout.addWidget(self.quote_edit)
         
+        answer_label = QLabel("大模型输出")
+        right_layout.addWidget(answer_label)
+        answer_label.setStyleSheet("border: none;")
         self.api_result_edit = QTextEdit()
         self.api_result_edit.setMinimumHeight(150)
         self.api_result_edit.setReadOnly(True)
         right_layout.addWidget(self.api_result_edit)
         
         #表格修改
-        self.table_widget = QTableWidget(10, 1)
-        self.table_widget.setHorizontalHeaderLabels(["食材名称"])
-        right_layout.addWidget(self.table_widget)
+        json_operator_layout = QHBoxLayout()
+        json_label = QLabel("json保存")
+        json_label.setStyleSheet("border: none;")
+        json_operator_layout.addWidget(json_label)
+        
+        self.comb_func = QComboBox()
+        self.comb_func.addItem("_label")
+        self.comb_func.addItem("_descri")
+        json_operator_layout.addWidget(self.comb_func)
+        right_layout.addLayout(json_operator_layout)
+        self.comb_func.setCurrentIndex(1)
+        
+        self.label_text_edit = QTextEdit()        
+        right_layout.addWidget(self.label_text_edit)
         right_layout.setContentsMargins(5, 5, 5, 5)
-        self.table_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.table_widget.setSizeAdjustPolicy(QTableWidget.AdjustToContents)
-                
+        self.label_text_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.label_text_edit.setSizeAdjustPolicy(QTableWidget.AdjustToContents)
+                        
     def get_client(self):
         try:
             client_config = os.path.join(self.config_edit.text(), "ssh_config.ini")
@@ -222,10 +239,10 @@ class Window(QWidget):
         folder_path = QFileDialog.getExistingDirectory(self, "选择文件夹", options=options)
         self.config_edit.setText(folder_path)
                 
-    def on_getfiles_clicked(self):
-        #创建目标文件夹
+    def on_confirm_savedir(self):
         current_dir = self.remote_path_edit.text()
         current_dir = current_dir.replace('\\', '/')
+        current_dir = current_dir.replace('//', '/')
         self.remote_path_edit.setText(current_dir)
         if not (current_dir.endswith('/')):
             current_dir = current_dir + '/'
@@ -234,21 +251,21 @@ class Window(QWidget):
         #获取标注文件夹
         path_parts = current_dir.split('/')
         path_parts = [part for part in path_parts if part]  # 删除空字符
-        folder_name = path_parts[-1] + "label"
-        
-        #获取保存文件夹
-        self.cur_image_folder = self.remote_path_edit.text()
+        folder_name = path_parts[-1] + self.comb_func.currentText()
         self.save_dir = folder_name.join(current_dir.rsplit(path_parts[-1], 1))
-
-        #
+        
+    def on_getfiles_clicked(self):
+        self.on_confirm_savedir()
+        
+        #当前文件夹
+        current_dir = self.remote_path_edit.text()
+        
         if z_dataprocess.is_linux_folder_path(current_dir):
             self.isLinux = True
-            self.client.create_remote_folder(self.save_dir)
             #图像更新
             self.name_dict = self.client.get_image_names(self.remote_path_edit.text())
         else:
             self.isLinux = False
-            os.makedirs(self.save_dir, exist_ok=True)
             self.name_dict = z_dataprocess.get_image_dict(self.remote_path_edit.text())
             
         self.fileReview.update_list(self.name_dict)
@@ -266,16 +283,15 @@ class Window(QWidget):
         else:
             pixmap = QPixmap(item_name)
             self.image_display.display_image(pixmap)
+            
         self.item_index = item_index
         self.cur_image_path = item_name
-        self.table_widget.clear()
+        self.label_text_edit.clear()
         self.api_result_edit.clear()
 
         #保存文件名
-        save_dir = self.save_dir
-        if save_dir[-1] != '/':
-            save_dir = save_dir + '/'
-        label_json_file = f"{save_dir}{list(self.name_dict.keys())[self.item_index]}.json"
+        self.on_confirm_savedir()
+        label_json_file = f"{self.save_dir}{list(self.name_dict.keys())[self.item_index]}.json"
         
         if self.isLinux and (not self.client.check_file_exists(label_json_file)):
             return
@@ -288,12 +304,10 @@ class Window(QWidget):
         else:
             json_data = z_dataprocess.read_json(label_json_file)
             
-        data_list = z_dataprocess.parse_json_data(json_data)
-        for row, word in enumerate(data_list):
-            item = QTableWidgetItem(word)
-            self.table_widget.setItem(row, 0, item)
-        self.r_widget.layout().addWidget(self.table_widget)
-        
+        function_index = self.comb_func.currentIndex()
+        res_string = z_dataprocess.parse_json_data(json_data, function_index)
+        self.label_text_edit.setText(res_string)
+
     def write(self, text):
         cursor = self.log_edit.textCursor()
         cursor.insertText(text)
@@ -314,23 +328,22 @@ class Window(QWidget):
             result = self.api_client.detect('temp_name', self.quote_edit.toPlainText())
         else:
             result = self.api_client.detect(self.cur_image_path, self.quote_edit.toPlainText())    
+            
         self.api_result_edit.setText(result)
-        dataList = [item for item in z_dataprocess.splite(result) if item]
-        self.resList = dataList
-
-        self.table_widget.clear()
-        for row, word in enumerate(dataList):
-            item = QTableWidgetItem(word)
-            self.table_widget.setItem(row, 0, item)
-        self.r_widget.layout().addWidget(self.table_widget)
+        show_res = z_dataprocess.parse_mllm_result(result, self.comb_func.currentIndex())
         
+        self.label_text_edit.clear()
+        self.label_text_edit.setText(show_res)
+ 
     def on_mllm_total_detect(self):
         quote = self.quote_edit.toPlainText()
-        image_folder = self.cur_image_folder
+        image_folder = self.remote_path_edit.text()
+        self.on_confirm_savedir()
         save_dir = self.save_dir
-        self.thread_dtct.set_save_path(image_folder, save_dir)
-        self.thread_dtct.set_parameter(self.client, quote)
-        self.thread_dtct.start()
+        # self.thread_dtct.set_save_path(image_folder, save_dir)
+        # self.thread_dtct.set_parameter(self.client, quote, self.comb_func.currentIndex())
+        # self.thread_dtct.start()
+        self.client.start_python_file(image_folder, quote, save_dir, self.comb_func.currentIndex())
         
         self.thread_count.set_save_path(len(self.name_dict.keys()), save_dir)
         self.thread_count.set_client(self.client)
@@ -351,19 +364,26 @@ class Window(QWidget):
         self.fileReview.setCurrentIndex(self.item_index)
     
     def on_btn_save(self):
+        self.on_confirm_savedir()
         file_path = f"{self.save_dir}{list(self.name_dict.keys())[self.item_index]}.json"
-        food_names = []
-        for row in range(self.table_widget.rowCount()):
-            item = self.table_widget.item(row, 0)
-            if item is not None and item.text():
-                food_names.append(item.text())
-        if len(food_names) == 0 :
-            print("未填写内容，直接返回！")
+        
+        label_func = self.comb_func.currentIndex()
+        mllm_text = self.label_text_edit.toPlainText()
+        data = z_dataprocess.generate_sharegpt_data(mllm_text, self.cur_image_path, label_func)
+        
+        if mllm_text == "":
+            print("输入内容为空，不返回！")
             return
-        data = z_dataprocess.generate_sharegpt_data(food_names, self.cur_image_path)
-        self.client.writeJson(file_path, data)     
+        
+        if self.isLinux:
+            self.client.create_remote_folder(self.save_dir)
+            self.client.writeJson(file_path, data)  
+        else:
+            os.makedirs(self.save_dir, exist_ok=True)
+            z_dataprocess.writeJson(file_path, data)
+        
         self.on_btn_down()
-    
+                   
     def on_btn_delete(self):
         file_path = f"{self.save_dir}{list(self.name_dict.keys())[self.item_index]}.json"
         print(f"删除文件：{file_path}")

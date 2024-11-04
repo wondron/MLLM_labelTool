@@ -40,13 +40,11 @@ class ImageViewer(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.position_label.setParent(self)
-        print('move:', 10, " : ", self.position_label.height())
         self.position_label.move(10, self.height() - self.position_label.height() * 1.5)
         self.position_label.show()
         
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        print('move:', 10, " : ", self.position_label.height(), " :  ", self.height() - self.position_label.height())
         self.position_label.move(10, self.height() - self.position_label.height() * 1.5)
         
     def display_image(self, pixmap):
@@ -76,7 +74,6 @@ class ImageViewer(QGraphicsView):
             if(self.start_pos.y() < 0):
                 self.start_pos.setY(0)
 
-            # print("start pos:", self.start_pos)
             if self.rect_item:
                 self.scene.removeItem(self.rect_item)
             self.rect_item = QGraphicsRectItem()

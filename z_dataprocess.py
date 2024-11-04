@@ -69,19 +69,32 @@ prompt_list = [
     "图中有哪些食材？若没有任何食材，请回复“无”，无需其他字符。",
 ]
 
+des_list = [
+    "描述一下图像",
+    '请详细描绘这幅图片的内容',
+    '请对这张图片进行视觉分析',
+    '请尝试用文字描绘这张图片',
+    '请描述这张图片'
+]
+
 
 def splite(res_text):
     words = [word for word in jieba.cut(res_text) if word.strip() and word not in string.punctuation and word not in '，。、！？：；“”‘’（）《》【】' and not word.isdigit()]
     return words
 
 
-def generate_sharegpt_data(data_content, image_path):    
-    random_number = random.randint(0, len(prompt_list)-1)
-    data_content_str = ', '.join(data_content)
+def generate_sharegpt_data(data_content, image_path, label_func):    
+    if label_func == 0:
+        random_number = random.randint(0, len(prompt_list)-1)
+        res_string = prompt_list[random_number]
+    elif label_func == 1:
+        random_number = random.randint(0, len(des_list)-1)
+        res_string = des_list[random_number]
+    
     data = [{
         "消息": [
-            {"role": "user" , "content": f"<image>{prompt_list[random_number]}"},
-            {"role": "助手" , "content": data_content_str},
+            {"role": "user" , "content": f"<image>{res_string}"},
+            {"role": "助手" , "content": data_content},
         ],
         "图片":[
             image_path
@@ -97,11 +110,39 @@ def is_linux_folder_path(path):
     :return: True 如果是Linux路径，False 如果是Windows路径
     """
     return not ':' in path
+
+def parse_mllm_result(mllm_output, func_index):
+    if func_index == 0:
+        filter_parse =  ["图", "存在", "以下", "下"]
+        data_list = splite(mllm_output)
+        data_list = [item for item in data_list if not any(keyword in item for keyword in filter_parse)]
+        res_string = '，'.join(data_list)
+    elif func_index == 1:
+        res_string = mllm_output
+    
+    return res_string
+
         
-def parse_json_data(json_data):
-    data = json_data[0]['消息'][1]['content']
-    data_list = [item for item in re.split('[，? ,  ]', data) if item]
-    return data_list
+def parse_json_data(json_data, func_index):
+    if func_index == 0:
+        filter_parse =  ["图", "存在", "以下", "下"]
+        data = json_data[0]['消息'][1]['content']
+        data_list = splite(data)
+        data_list = [item for item in data_list if not any(keyword in item for keyword in filter_parse)]
+        res_string = '，'.join(data_list)
+    elif func_index == 1:
+        res_string = json_data[0]['消息'][1]['content']
+    
+    return res_string
+
+
+def writeJson(save_path, data):
+    try:
+        with open(save_path, 'w') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        print(f"数据已成功保存到 {save_path}")
+    except Exception as e:
+        print(f"保存数据到 {save_path} 失败，错误信息: {e}")
 
 
 def get_image_dict(file_folder):
