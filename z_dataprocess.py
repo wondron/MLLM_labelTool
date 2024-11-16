@@ -77,6 +77,10 @@ des_list = [
     '请描述这张图片'
 ]
 
+food_list = [
+    "图中存在哪些食材，没有食材就返回“无”，请简短回答无需输出无关字符。"
+]
+
 
 def splite(res_text):
     words = [word for word in jieba.cut(res_text) if word.strip() and word not in string.punctuation and word not in '，。、！？：；“”‘’（）《》【】' and not word.isdigit()]
@@ -90,6 +94,9 @@ def generate_sharegpt_data(data_content, image_path, label_func):
     elif label_func == 1:
         random_number = random.randint(0, len(des_list)-1)
         res_string = des_list[random_number]
+    elif label_func == 2:
+        random_number = random.randint(0, len(food_list)-1)
+        res_string = food_list[random_number]
     
     data = [{
         "消息": [
@@ -119,6 +126,8 @@ def parse_mllm_result(mllm_output, func_index):
         res_string = '，'.join(data_list)
     elif func_index == 1:
         res_string = mllm_output
+    elif func_index == 2:
+        res_string = mllm_output
     
     return res_string
 
@@ -131,6 +140,8 @@ def parse_json_data(json_data, func_index):
         data_list = [item for item in data_list if not any(keyword in item for keyword in filter_parse)]
         res_string = '，'.join(data_list)
     elif func_index == 1:
+        res_string = json_data[0]['消息'][1]['content']
+    elif func_index == 2:
         res_string = json_data[0]['消息'][1]['content']
     
     return res_string

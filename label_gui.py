@@ -98,7 +98,7 @@ class Window(QWidget):
         server_layout = QHBoxLayout()
         self.label = QLabel("配置文件路径")
         server_layout.addWidget(self.label)
-        self.config_edit = QLineEdit ("D:/01-code/00-python/03-showfile/config")
+        self.config_edit = QLineEdit ("./config")
         self.config_edit.setStyleSheet(qLineEditStyle)
         self.config_edit.setMaximumHeight(25)
         server_layout.addWidget(self.config_edit)
@@ -207,16 +207,24 @@ class Window(QWidget):
         self.comb_func = QComboBox()
         self.comb_func.addItem("_label")
         self.comb_func.addItem("_descri")
+        self.comb_func.addItem("_foodList")
         json_operator_layout.addWidget(self.comb_func)
         right_layout.addLayout(json_operator_layout)
-        self.comb_func.setCurrentIndex(1)
+        self.comb_func.setCurrentIndex(2)
         
         self.label_text_edit = QTextEdit()        
         right_layout.addWidget(self.label_text_edit)
         right_layout.setContentsMargins(5, 5, 5, 5)
         self.label_text_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.label_text_edit.setSizeAdjustPolicy(QTableWidget.AdjustToContents)
-                        
+        
+        #标签列表
+        food_label = QLabel("foodList保存")
+        self.label_food_list_edit = QTextEdit()
+        right_layout.addWidget(food_label)
+        right_layout.addWidget(self.label_food_list_edit)
+        
+             
     def get_client(self):
         try:
             client_config = os.path.join(self.config_edit.text(), "ssh_config.ini")
@@ -381,7 +389,6 @@ class Window(QWidget):
         else:
             os.makedirs(self.save_dir, exist_ok=True)
             z_dataprocess.writeJson(file_path, data)
-        
         self.on_btn_down()
                    
     def on_btn_delete(self):
