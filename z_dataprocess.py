@@ -88,6 +88,9 @@ def splite(res_text):
 
 
 def generate_sharegpt_data(data_content, image_path, label_func):    
+    if data_content == "":
+        return None    
+    
     if label_func == 0:
         random_number = random.randint(0, len(prompt_list)-1)
         res_string = prompt_list[random_number]
@@ -133,6 +136,9 @@ def parse_mllm_result(mllm_output, func_index):
 
         
 def parse_json_data(json_data, func_index):
+    if json_data is None:
+        return ''
+    
     if func_index == 0:
         filter_parse =  ["图", "存在", "以下", "下"]
         data = json_data[0]['消息'][1]['content']
@@ -175,11 +181,14 @@ def read_json(file_path):
     :return: 读取的json数据。
     """
     try:
+        if not os.path.exists(file_path):
+            return None
         with open(file_path, 'r') as f:
             json_data = json.load(f)
         return json_data
     except Exception as e:
-        raise ConnectionError(f"读取JSON文件{file_path}失败，{e}")
+        print(f"读取JSON文件{file_path}失败，{e}")
+        return None
 
 if __name__ == "__main__":
     conversation = [

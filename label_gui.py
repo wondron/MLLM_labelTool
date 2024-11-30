@@ -118,7 +118,7 @@ class Window(QWidget):
         label_layout = QHBoxLayout()
         self.remote_path_label = QLabel("远程路径")
         label_layout.addWidget(self.remote_path_label)
-        self.remote_path_edit = QLineEdit("/data/wangzhuo/01-code/99-qita/01-QWen/image")
+        self.remote_path_edit = QLineEdit("/data/wangzhuo/00-dataset/01-MLLM/00_image/多宝鱼")
         label_layout.addWidget(self.remote_path_edit)
         self.btn_get_imagefiles = QPushButton("文件列表获取")
         self.btn_get_imagefiles.clicked.connect(self.on_getfiles_clicked)
@@ -127,7 +127,6 @@ class Window(QWidget):
 
         # 图像显示
         self.image_display = ImageViewer()
-        # self.image_display = QLabel()
         self.image_display.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
         mid_layout.addWidget(self.image_display)
 
@@ -200,17 +199,10 @@ class Window(QWidget):
         
         #表格修改
         json_operator_layout = QHBoxLayout()
-        json_label = QLabel("json保存")
+        json_label = QLabel("图像描述")
         json_label.setStyleSheet("border: none;")
         json_operator_layout.addWidget(json_label)
-        
-        self.comb_func = QComboBox()
-        self.comb_func.addItem("_label")
-        self.comb_func.addItem("_descri")
-        self.comb_func.addItem("_foodList")
-        json_operator_layout.addWidget(self.comb_func)
         right_layout.addLayout(json_operator_layout)
-        self.comb_func.setCurrentIndex(2)
         
         self.label_text_edit = QTextEdit()        
         right_layout.addWidget(self.label_text_edit)
@@ -219,7 +211,8 @@ class Window(QWidget):
         self.label_text_edit.setSizeAdjustPolicy(QTableWidget.AdjustToContents)
         
         #标签列表
-        food_label = QLabel("foodList保存")
+        food_label = QLabel("食材列表")
+        food_label.setStyleSheet("border: none;")
         self.label_food_list_edit = QTextEdit()
         right_layout.addWidget(food_label)
         right_layout.addWidget(self.label_food_list_edit)
@@ -257,14 +250,23 @@ class Window(QWidget):
             self.remote_path_edit.setText(current_dir)
         
         #获取标注文件夹
-        path_parts = current_dir.split('/')
-        path_parts = [part for part in path_parts if part]  # 删除空字符
-        folder_name = path_parts[-1] + self.comb_func.currentText()
-        self.save_dir = folder_name.join(current_dir.rsplit(path_parts[-1], 1))
+        if '00_image' not in current_dir:
+            print("---标注文件夹命名错误，直接返回！--- ")
+            return False
+        
+        # 获取 current_dir 含有 00_image 字符串的数量
+        count_00_image = current_dir.count('00_image')
+        if count_00_image > 1:
+            print(f"当前路径中包含 '00_image' 的数量: {count_00_image} > 1，命名错误返回NG！")
+            return False
+
+        self.mllm_descri = current_dir.replace('00_image', '01_descri')
+        self.mllm_foodList = current_dir.replace('00_image', '02_foodList')
+        return True
         
     def on_getfiles_clicked(self):
-        self.on_confirm_savedir()
-        
+        if not self.on_confirm_savedir():
+            return 
         #当前文件夹
         current_dir = self.remote_path_edit.text()
         
@@ -299,22 +301,21 @@ class Window(QWidget):
 
         #保存文件名
         self.on_confirm_savedir()
-        label_json_file = f"{self.save_dir}{list(self.name_dict.keys())[self.item_index]}.json"
-        
-        if self.isLinux and (not self.client.check_file_exists(label_json_file)):
-            return
-        
-        if (not self.isLinux) and (not os.path.exists(label_json_file)):
-            return
+        json_name = list(self.name_dict.keys())[self.item_index] + '.json'
+        label_json_file = os.path.join(self.mllm_descri, json_name)
+        list_json_file = os.path.join(self.mllm_foodList, json_name)
         
         if self.isLinux:
-            json_data = self.client.read_json(label_json_file)
+            json_descri = self.client.read_json(label_json_file)
+            json_list = self.client.read_json(list_json_file)
         else:
-            json_data = z_dataprocess.read_json(label_json_file)
-            
-        function_index = self.comb_func.currentIndex()
-        res_string = z_dataprocess.parse_json_data(json_data, function_index)
-        self.label_text_edit.setText(res_string)
+            json_descri = z_dataprocess.read_json(label_json_file)
+            json_list = z_dataprocess.read_json(list_json_file)
+        
+        descri_str = z_dataprocess.parse_json_data(json_descri, 1)
+        list_str = z_dataprocess.parse_json_data(json_list, 1)
+        self.label_text_edit.setText(descri_str)
+        self.label_food_list_edit.setText(list_str)
 
     def write(self, text):
         cursor = self.log_edit.textCursor()
@@ -373,22 +374,27 @@ class Window(QWidget):
     
     def on_btn_save(self):
         self.on_confirm_savedir()
-        file_path = f"{self.save_dir}{list(self.name_dict.keys())[self.item_index]}.json"
+
+        json_name = list(self.name_dict.keys())[self.item_index] + '.json'
+        label_json_file = os.path.join(self.mllm_descri, json_name)
+        list_json_file = os.path.join(self.mllm_foodList, json_name)
+
+        descri_text = self.label_text_edit.toPlainText()
+        foodList_text = self.label_food_list_edit.toPlainText()
         
-        label_func = self.comb_func.currentIndex()
-        mllm_text = self.label_text_edit.toPlainText()
-        data = z_dataprocess.generate_sharegpt_data(mllm_text, self.cur_image_path, label_func)
-        
-        if mllm_text == "":
-            print("输入内容为空，不返回！")
-            return
-        
+        descri_data = z_dataprocess.generate_sharegpt_data(descri_text, self.cur_image_path, 1)
+        foodList_data = z_dataprocess.generate_sharegpt_data(foodList_text, self.cur_image_path, 2)
+
         if self.isLinux:
-            self.client.create_remote_folder(self.save_dir)
-            self.client.writeJson(file_path, data)  
+            self.client.create_remote_folder(os.path.dirname(label_json_file))
+            self.client.create_remote_folder(os.path.dirname(list_json_file))        
+            self.client.writeJson(label_json_file, descri_data)
+            self.client.writeJson(list_json_file, foodList_data)
         else:
-            os.makedirs(self.save_dir, exist_ok=True)
-            z_dataprocess.writeJson(file_path, data)
+            os.makedirs(os.path.pardir(label_json_file), exist_ok=True)
+            os.makedirs(os.path.pardir(list_json_file), exist_ok=True)
+            z_dataprocess.writeJson(label_json_file, descri_data)
+            z_dataprocess.writeJson(list_json_file, foodList_data)
         self.on_btn_down()
                    
     def on_btn_delete(self):

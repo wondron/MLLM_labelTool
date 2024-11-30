@@ -63,6 +63,9 @@ class SSHClient:
             raise ConnectionError(f"图像获取失败，{os.path.basename(image_path)}:{e}")
     
     def writeJson(self, file_path, data):
+        if data is None:
+            return
+        
         if not self.is_connected:
             raise ConnectionError("未连接远程服务器，无法写入JSON文件！")
         try:
@@ -131,13 +134,17 @@ class SSHClient:
         :return: 读取的json数据。
         """
         if not self.is_connected:
-            raise ConnectionError("未连接远程服务器，无法读取JSON文件！")
-        try:
-            with self.sftp.open(file_path, 'r') as f:
-                json_data = json.load(f)
-            return json_data
-        except Exception as e:
-            raise ConnectionError(f"读取JSON文件失败，{e}")
+            print("未连接远程服务器，无法读取JSON文件！")
+            return None
+            
+        if not self.check_file_exists(file_path):
+            return None
+        
+        json_data = None
+        with self.sftp.open(file_path, 'r') as f:
+            json_data = json.load(f)
+        return json_data
+        
         
     def create_remote_folder(self, folder_path):
         """
