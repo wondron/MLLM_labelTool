@@ -1,6 +1,6 @@
 import sys, os
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QTextEdit,QLineEdit, QComboBox
-from PyQt5.QtWidgets import QHBoxLayout, QFileDialog, QSizePolicy, QSplitter, QTableWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QTextEdit,QLineEdit, QComboBox, QSpinBox
+from PyQt5.QtWidgets import QHBoxLayout, QFileDialog, QSizePolicy, QSplitter, QTableWidget, QTableWidgetItem, QSpacerItem
 from PyQt5.QtGui import QPixmap, QImage, QTextCursor
 from PyQt5.QtCore import pyqtSignal, QThread, QUrl, QByteArray, Qt
 from z_sshTool import SSHClient
@@ -182,9 +182,20 @@ class Window(QWidget):
         API_operator_layout.addWidget(self.btn_detect_total_api)
         right_layout.addLayout(API_operator_layout)
         
+        quote_layout = QHBoxLayout()
         quote_label = QLabel("quote输入")
-        right_layout.addWidget(quote_label)
         quote_label.setStyleSheet("border: none;")
+        quote_layout.addWidget(quote_label)
+        
+        # qspace = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        # quote_layout.addWidget(qspace)
+        
+        self.qSpin = QSpinBox()
+        self.qSpin.setRange(0, 9999)
+        self.qSpin.setValue(980)
+        quote_layout.addWidget(self.qSpin)
+        
+        right_layout.addLayout(quote_layout)
         self.quote_edit = QTextEdit("图中存在哪些食材？没有食材就返回“无”，请简短回答无需输出无关字符。")
         self.quote_edit.setMaximumHeight(150)
         right_layout.addWidget(self.quote_edit)
@@ -334,15 +345,15 @@ class Window(QWidget):
     def on_mllm_detect(self):
         if self.isLinux:
             self.client.get_image(self.cur_image_path)
-            result = self.api_client.detect('temp_name', self.quote_edit.toPlainText())
+            result = self.api_client.detect('temp_name', self.quote_edit.toPlainText(), self.qSpin.value())
         else:
-            result = self.api_client.detect(self.cur_image_path, self.quote_edit.toPlainText())    
+            result = self.api_client.detect(self.cur_image_path, self.quote_edit.toPlainText(), self.qSpin.value())    
             
         self.api_result_edit.setText(result)
-        show_res = z_dataprocess.parse_mllm_result(result, self.comb_func.currentIndex())
+        show_res = z_dataprocess.parse_mllm_result(result, 1)
         
-        self.label_text_edit.clear()
-        self.label_text_edit.setText(show_res)
+        # self.label_text_edit.clear()
+        # self.label_text_edit.setText(show_res)
  
     def on_mllm_total_detect(self):
         quote = self.quote_edit.toPlainText()
@@ -398,9 +409,18 @@ class Window(QWidget):
         self.on_btn_down()
                    
     def on_btn_delete(self):
-        file_path = f"{self.save_dir}{list(self.name_dict.keys())[self.item_index]}.json"
-        print(f"删除文件：{file_path}")
-        self.client.get_delete(file_path)
+        json_name = list(self.name_dict.keys())[self.item_index] + '.json'
+        label_json_file = os.path.join(self.mllm_descri, json_name)
+        list_json_file = os.path.join(self.mllm_foodList, json_name)
+
+        print(f"删除文件：{json_name}")
+        if self.isLinux:
+            self.client.get_delete(label_json_file)
+            self.client.get_delete(list_json_file)
+        else:
+            os.remove(label_json_file)
+            os.remove(list_json_file)
+        self.on_btn_down()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -81,6 +81,7 @@ class SSHClient:
         删除远程文件，如果jsonpath不存在则返回。
         :param json_path: 要删除的远程文件路径。
         """
+       
         if not self.is_connected:
             raise ConnectionError("未连接远程服务器，无法删除文件！")
         try:
